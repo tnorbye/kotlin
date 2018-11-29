@@ -242,10 +242,14 @@ public class CheckerTestUtil {
         );
 
         for (Pair<? extends WritableSlice<? extends KtExpression, ?>, ? extends DebugInfoDiagnosticFactory> factory : factoryList) {
-            for (KtExpression expression : bindingContext.getSliceContents(factory.getFirst()).keySet()) {
+            List<? extends KtExpression> test = bindingContext.getSliceContents(factory.getFirst()).keySet().asList();
+
+            for (KtExpression expression : test) {
                 if (PsiTreeUtil.isAncestor(root, expression, false)) {
                     Diagnostic diagnostic = factory.getSecond().createDiagnostic(expression, bindingContext, dataFlowValueFactory, languageVersionSettings, moduleDescriptor);
-                    debugAnnotations.add(new ActualDiagnostic(diagnostic, platform, withNewInference));
+                    ActualDiagnostic t = new ActualDiagnostic(diagnostic, platform, withNewInference);
+
+                    debugAnnotations.add(t);
                 }
             }
         }
@@ -338,6 +342,7 @@ public class CheckerTestUtil {
 
         Map<AbstractTestDiagnostic, TextDiagnostic> actualDiagnostics = currentActual.getTextDiagnosticsMap();
         List<TextDiagnostic> expectedDiagnostics = currentExpected.getDiagnostics();
+        Set<String> diagnosticNames = new HashSet<>();
 
         for (TextDiagnostic expectedDiagnostic : expectedDiagnostics) {
             Map.Entry<AbstractTestDiagnostic, TextDiagnostic> actualDiagnosticEntry = CollectionsKt.firstOrNull(
@@ -357,11 +362,11 @@ public class CheckerTestUtil {
                 }
 
                 actualDiagnostics.remove(actualDiagnostic);
+                diagnosticNames.add(actualDiagnostic.getName());
                 actualDiagnostic.enhanceInferenceCompatibility(expectedDiagnostic.inferenceCompatibility);
 
                 diagnosticToInput.put(actualDiagnostic, expectedDiagnostic);
-            }
-            else {
+            } else {
                 callbacks.missingDiagnostic(expectedDiagnostic, expectedStart, expectedEnd);
             }
         }
@@ -369,7 +374,7 @@ public class CheckerTestUtil {
         for (AbstractTestDiagnostic unexpectedDiagnostic : actualDiagnostics.keySet()) {
             TextDiagnostic textDiagnostic = actualDiagnostics.get(unexpectedDiagnostic);
 
-            if (hasExplicitDefinitionOnlyOption(unexpectedDiagnostic))
+            if (hasExplicitDefinitionOnlyOption(unexpectedDiagnostic) && !diagnosticNames.contains(unexpectedDiagnostic.getName()))
                 continue;
 
             callbacks.unexpectedDiagnostic(textDiagnostic, actualStart, actualEnd);
@@ -716,7 +721,7 @@ public class CheckerTestUtil {
 
     public static class DebugInfoDiagnosticFactory1 extends DiagnosticFactory1<PsiElement, String> implements DebugInfoDiagnosticFactory {
         public static final DebugInfoDiagnosticFactory1 EXPRESSION_TYPE =
-                DebugInfoDiagnosticFactory1.create("EXPRESSION_TYPE", Severity.INFO, true);
+                create("EXPRESSION_TYPE", Severity.INFO, true);
 
         final private String name;
         final private Boolean withExplicitDefinitionOnly;
@@ -864,10 +869,11 @@ public class CheckerTestUtil {
         }
 
         public Map<AbstractTestDiagnostic, TextDiagnostic> getTextDiagnosticsMap() {
-            Map<AbstractTestDiagnostic, TextDiagnostic> diagnosticMap = new HashMap<>();
+            Map<AbstractTestDiagnostic, TextDiagnostic> diagnosticMap = new TreeMap<>();
             for (AbstractTestDiagnostic diagnostic : diagnostics) {
                 diagnosticMap.put(diagnostic, TextDiagnostic.asTextDiagnostic(diagnostic));
             }
+
             return diagnosticMap;
         }
     }
@@ -905,7 +911,15 @@ public class CheckerTestUtil {
 
         @Override
         public int compareTo(@NotNull AbstractTestDiagnostic diagnostic) {
-            return getName().compareTo(diagnostic.getName());
+            if (this.diagnostic instanceof DiagnosticWithParameters1 && diagnostic instanceof ActualDiagnostic && ((ActualDiagnostic) diagnostic).diagnostic instanceof DiagnosticWithParameters1) {
+                return (getName() + ((DiagnosticWithParameters1) this.diagnostic).getA()).compareTo(diagnostic.getName() + ((DiagnosticWithParameters1) ((ActualDiagnostic) diagnostic).diagnostic).getA());
+            } else if (this.diagnostic instanceof DiagnosticWithParameters1) {
+                return (getName() + ((DiagnosticWithParameters1) this.diagnostic).getA()).compareTo(diagnostic.getName());
+            } else if (diagnostic instanceof ActualDiagnostic && ((ActualDiagnostic) diagnostic).diagnostic instanceof DiagnosticWithParameters1) {
+                return getName().compareTo(diagnostic.getName() + ((DiagnosticWithParameters1) ((ActualDiagnostic) diagnostic).diagnostic).getA());
+            } else {
+                return getName().compareTo(diagnostic.getName());
+            }
         }
 
         ActualDiagnostic(@NotNull Diagnostic diagnostic, @Nullable String platform, boolean withNewInference) {

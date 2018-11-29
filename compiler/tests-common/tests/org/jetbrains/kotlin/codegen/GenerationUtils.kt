@@ -17,6 +17,7 @@
 package org.jetbrains.kotlin.codegen
 
 import com.intellij.psi.search.GlobalSearchScope
+import org.jetbrains.kotlin.TestsCompiletimeError
 import org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory
 import org.jetbrains.kotlin.cli.common.output.writeAllTo
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
@@ -66,7 +67,14 @@ object GenerationUtils {
         trace: BindingTrace = NoScopeRecordCliBindingTrace()
     ): GenerationState {
         val analysisResult =
-            JvmResolveUtil.analyzeAndCheckForErrors(files.first().project, files, configuration, packagePartProvider, trace)
+            try {
+                JvmResolveUtil.analyzeAndCheckForErrors(files.first().project, files, configuration, packagePartProvider, trace)
+            } catch (e: IllegalStateException) {
+                throw TestsCompiletimeError(e)
+            } catch (e: IllegalArgumentException) {
+                throw TestsCompiletimeError(e)
+            }
+
         analysisResult.throwIfError()
 
         val state = GenerationState.Builder(
@@ -80,7 +88,12 @@ object GenerationUtils {
         }
 
         // For JVM-specific errors
-        AnalyzingUtils.throwExceptionOnErrors(state.collectedExtraJvmDiagnostics)
+        try {
+            AnalyzingUtils.throwExceptionOnErrors(state.collectedExtraJvmDiagnostics)
+        } catch (e: Throwable) {
+            throw TestsCompiletimeError(e)
+        }
+
         return state
     }
 }

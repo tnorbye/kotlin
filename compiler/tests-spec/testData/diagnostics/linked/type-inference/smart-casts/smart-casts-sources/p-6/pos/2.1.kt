@@ -25,5 +25,5 @@ fun foo() = run {
 
     val cc = if (true) mm else nn
 
-    <!DEBUG_INFO_EXPRESSION_TYPE("{Foo & A<{Foo & A<{Foo & A<{Foo & A<{Foo & A<Any?>}>}>}>}>}")!>cc<!>
+    <!DEBUG_INFO_EXPRESSION_TYPE("{A<{A<{A<{A<{A<Any?> & Foo}> & Foo}> & Foo}> & Foo}> & Foo}")!>cc<!>
 }

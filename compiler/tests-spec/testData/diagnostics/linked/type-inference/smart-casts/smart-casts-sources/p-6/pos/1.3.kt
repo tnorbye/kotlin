@@ -334,7 +334,7 @@ fun case_23(a: ((Float) -> Int?)?, b: Float?) {
         <!DEBUG_INFO_CONSTANT, DEBUG_INFO_EXPRESSION_TYPE("kotlin.Nothing? & \(\(kotlin.Float\) -> kotlin.Int?\)?")!>a<!>
         <!DEBUG_INFO_CONSTANT, DEBUG_INFO_EXPRESSION_TYPE("kotlin.Nothing? & kotlin.Float?")!>b<!>
         if (<!SENSELESS_COMPARISON!><!DEBUG_INFO_CONSTANT!>a<!> != null<!>) {
-            <!DEBUG_INFO_EXPRESSION_TYPE("kotlin.Nothing & \(kotlin.Float\) -> kotlin.Int? & \(\(kotlin.Float\) -> kotlin.Int?\)?")!>a<!>
+            <!DEBUG_INFO_EXPRESSION_TYPE("\(kotlin.Float\) -> kotlin.Int? & kotlin.Nothing & \(\(kotlin.Float\) -> kotlin.Int?\)?")!>a<!>
         }
     }
 }

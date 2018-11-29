@@ -9,6 +9,7 @@ import com.intellij.openapi.util.io.FileUtil;
 import kotlin.io.FilesKt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.TestsRuntimeError;
 import org.jetbrains.kotlin.backend.common.CodegenUtil;
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil;
 import org.jetbrains.kotlin.psi.*;
@@ -33,19 +34,13 @@ public abstract class AbstractBlackBoxCodegenTest extends CodegenTestCase {
         @NotNull List<TestFile> files,
         @Nullable File javaFilesDir
     ) throws Exception {
-        try {
-            compile(files, javaFilesDir);
-            blackBox();
-        }
-        catch (Throwable t) {
-            try {
-                // To create .txt file in case of failure
-                doBytecodeListingTest(wholeFile);
-            }
-            catch (Throwable ignored) {
-            }
+        compile(files, javaFilesDir);
 
-            throw t;
+        try {
+            blackBox();
+        } catch (Throwable t) {
+            try { doBytecodeListingTest(wholeFile); } catch (Throwable ignored) { }
+            throw new TestsRuntimeError(t);
         }
 
         doBytecodeListingTest(wholeFile);

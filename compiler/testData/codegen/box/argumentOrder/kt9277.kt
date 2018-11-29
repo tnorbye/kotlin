@@ -3,6 +3,8 @@
 fun box(): String {
     foo(null)
 
+    null!!
+
     return "OK"
 }
 

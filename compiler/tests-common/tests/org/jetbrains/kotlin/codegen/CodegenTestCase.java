@@ -18,6 +18,8 @@ import kotlin.script.experimental.dependencies.ScriptDependencies;
 import kotlin.text.Charsets;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.TestsCompiletimeError;
+import org.jetbrains.kotlin.TestsCompilerError;
 import org.jetbrains.kotlin.backend.common.output.OutputFile;
 import org.jetbrains.kotlin.backend.common.output.SimpleOutputFileCollection;
 import org.jetbrains.kotlin.checkers.CheckerTestUtil;
@@ -76,6 +78,7 @@ import static org.jetbrains.kotlin.codegen.TestUtilsKt.extractUrls;
 import static org.jetbrains.kotlin.test.KotlinTestUtils.getAnnotationsJar;
 import static org.jetbrains.kotlin.test.clientserver.TestProcessServerKt.getBoxMethodOrNull;
 import static org.jetbrains.kotlin.test.clientserver.TestProcessServerKt.getGeneratedClass;
+import static org.jetbrains.kotlin.utils.ExceptionUtilsKt.rethrow;
 
 public abstract class CodegenTestCase extends KtUsefulTestCase {
     private static final String DEFAULT_TEST_FILE_NAME = "a_test";
@@ -456,7 +459,7 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
             return result;
         }
         catch (MalformedURLException e) {
-            throw ExceptionUtilsKt.rethrow(e);
+            throw rethrow(e);
         }
     }
 
@@ -512,8 +515,8 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
                     DxChecker.check(classFileFactory);
                 }
             }
-            catch (Throwable e) {
-                e.printStackTrace();
+            catch (TestsCompiletimeError e) {
+                e.getOriginal().printStackTrace();
                 System.err.println("Generating instructions as text...");
                 try {
                     if (classFileFactory == null) {
@@ -529,6 +532,8 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
                     System.err.println("-----------------------------------------------------------------------------");
                 }
                 fail("See exceptions above");
+            } catch (Throwable e) {
+                throw new TestsCompilerError(e);
             }
         }
         return classFileFactory;
@@ -603,7 +608,7 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
             return (Class<? extends Annotation>) initializedClassLoader.loadClass(fqName);
         }
         catch (ClassNotFoundException e) {
-            throw ExceptionUtilsKt.rethrow(e);
+            throw rethrow(e);
         }
     }
 
@@ -668,7 +673,7 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
                 kotlinOut = KotlinTestUtils.tmpDir(toString());
             }
             catch (IOException e) {
-                throw ExceptionUtilsKt.rethrow(e);
+                throw rethrow(e);
             }
 
             OutputUtilsKt.writeAllTo(classFileFactory, kotlinOut);
@@ -793,7 +798,7 @@ public abstract class CodegenTestCase extends KtUsefulTestCase {
                             javaFilesDir.set(KotlinTestUtils.tmpDir("java-files"));
                         }
                         catch (IOException e) {
-                            throw ExceptionUtilsKt.rethrow(e);
+                            throw rethrow(e);
                         }
                     }
                     writeSourceFile(fileName, text, javaFilesDir.get());

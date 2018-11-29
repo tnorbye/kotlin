@@ -714,9 +714,7 @@ object Renderers {
         }
 
         if (!types.isNullOrEmpty()) {
-            return types.joinToString(separator = " & ") {
-                DEBUG_TEXT.renderType(it)
-            } + " & $result"
+            return types.map { DEBUG_TEXT.renderType(it) }.sorted().joinToString(separator = " & ") + " & $result"
         }
 
         val smartCast = bindingContext[BindingContext.SMARTCAST, expression]

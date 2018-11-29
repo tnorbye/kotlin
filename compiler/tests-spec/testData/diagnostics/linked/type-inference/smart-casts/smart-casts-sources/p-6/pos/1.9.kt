@@ -1,5 +1,6 @@
 // !LANGUAGE: +NewInference
 // !DIAGNOSTICS: -UNUSED_EXPRESSION
+// !WITH_CLASSES_WITH_PROJECTIONS
 // SKIP_TXT
 
 /*
@@ -404,7 +405,7 @@ fun case_32(z: A32<Int>) {
 
 // TESTCASE NUMBER: 33
 class A33<T>(val x: T) {
-    fun f() = if (true) x else null
+    fun f() = select(x, null)
 }
 
 fun case_33(z: A33<Int>) {
