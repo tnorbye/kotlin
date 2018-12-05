@@ -100,11 +100,11 @@ class ScratchTopPanel private constructor(val scratchFile: ScratchFile) : JPanel
         moduleChooser.selectedModule = module
     }
 
-    fun addModuleListener(f: (PsiFile, Module) -> Unit) {
+    fun addModuleListener(f: (PsiFile, Module?) -> Unit) {
         moduleChooser.addActionListener {
             val selectedModule = moduleChooser.selectedModule
             val psiFile = scratchFile.getPsiFile()
-            if (selectedModule != null && psiFile != null) {
+            if (psiFile != null) {
                 f(psiFile, selectedModule)
             }
         }
@@ -138,6 +138,7 @@ class ScratchTopPanel private constructor(val scratchFile: ScratchFile) : JPanel
             setModules(ModuleManager.getInstance(project).modules.filter {
                 it.productionSourceInfo() != null || it.testSourceInfo() != null
             })
+            allowEmptySelection(ConfigurationModuleSelector.NO_MODULE_TEXT)
         }
     }
 }

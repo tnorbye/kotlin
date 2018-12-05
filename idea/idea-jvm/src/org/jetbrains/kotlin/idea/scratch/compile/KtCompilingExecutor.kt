@@ -39,6 +39,7 @@ import org.jetbrains.kotlin.diagnostics.Severity
 import org.jetbrains.kotlin.diagnostics.rendering.DefaultErrorMessages
 import org.jetbrains.kotlin.idea.caches.resolve.analyzeWithAllCompilerChecks
 import org.jetbrains.kotlin.idea.caches.resolve.getResolutionFacade
+import org.jetbrains.kotlin.idea.core.script.ScriptDependenciesManager
 import org.jetbrains.kotlin.idea.debugger.DebuggerUtils
 import org.jetbrains.kotlin.idea.refactoring.getLineNumber
 import org.jetbrains.kotlin.idea.scratch.*
@@ -59,7 +60,7 @@ class KtCompilingExecutor(file: ScratchFile) : ScratchExecutor(file) {
     }
 
     override fun execute() {
-        val module = file.getModule() ?: return error("Module should be selected")
+        val module = file.getModule()
         val psiFile = file.getPsiFile() as? KtFile ?: return error("Couldn't find KtFile for current editor")
 
         if (!checkForErrors(psiFile)) {
@@ -159,16 +160,25 @@ class KtCompilingExecutor(file: ScratchFile) : ScratchExecutor(file) {
         return dir
     }
 
-    private fun createCommandLine(module: Module, mainClassName: String, tempOutDir: String): GeneralCommandLine {
+    private fun createCommandLine(module: Module?, mainClassName: String, tempOutDir: String): GeneralCommandLine {
         val javaParameters = KotlinConsoleKeeper.createJavaParametersWithSdk(module)
         javaParameters.mainClass = mainClassName
 
-        val compiledModulePath = CompilerPathsEx.getOutputPaths(arrayOf(module)).toList()
-        val moduleDependencies = OrderEnumerator.orderEntries(module).recursively().pathsList.pathList
-
         javaParameters.classPath.add(tempOutDir)
-        javaParameters.classPath.addAll(compiledModulePath)
-        javaParameters.classPath.addAll(moduleDependencies)
+
+        if (module != null) {
+            val compiledModulePath = CompilerPathsEx.getOutputPaths(arrayOf(module)).toList()
+            javaParameters.classPath.addAll(compiledModulePath)
+
+            val moduleDependencies = OrderEnumerator.orderEntries(module).recursively().pathsList.pathList
+            javaParameters.classPath.addAll(moduleDependencies)
+        }
+
+        val virtualFile = file.getPsiFile()?.virtualFile
+        if (virtualFile != null) {
+            val scriptDependencies = ScriptDependenciesManager.getInstance(file.project).getScriptDependencies(virtualFile)
+            javaParameters.classPath.addAll(scriptDependencies.classpath.map { it.path })
+        }
 
         return javaParameters.toCommandLine()
     }

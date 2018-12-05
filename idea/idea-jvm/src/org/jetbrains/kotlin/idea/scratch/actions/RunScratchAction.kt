@@ -60,11 +60,6 @@ class RunScratchAction : ScratchAction(
         log.printDebugMessage("Run Action: isMakeBeforeRun = $isMakeBeforeRun, isRepl = $isRepl")
 
         val module = scratchPanel.getModule()
-        if (module == null) {
-            handler.error(scratchFile, "Module should be selected")
-            handler.onFinish(scratchFile)
-            return
-        }
 
         fun executeScratch() {
             val executor = if (isRepl) provider.createReplExecutor(scratchFile) else provider.createCompilingExecutor(scratchFile)
@@ -96,7 +91,7 @@ class RunScratchAction : ScratchAction(
             }
         }
 
-        if (isMakeBeforeRun) {
+        if (isMakeBeforeRun && module != null) {
             ProjectTaskManager.getInstance(project).build(arrayOf(module)) { result ->
                 if (result.isAborted || result.errors > 0) {
                     handler.error(scratchFile, "There were compilation errors in module ${module.name}")
