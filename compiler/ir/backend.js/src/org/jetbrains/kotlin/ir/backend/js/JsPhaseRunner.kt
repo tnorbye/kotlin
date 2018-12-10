@@ -23,9 +23,6 @@ private fun validationCallback(module: IrModuleFragment, context: JsIrBackendCon
 }
 
 object JsPhaseRunner : DefaultIrPhaseRunner<JsIrBackendContext, IrModuleFragment>(::validationCallback) {
-    override val startPhaseMarker = IrModuleStartPhase
-    override val endPhaseMarker = IrModuleEndPhase
-
     override fun phases(context: JsIrBackendContext) = context.phases
     override fun elementName(input: IrModuleFragment) = input.name.asString()
     override fun configuration(context: JsIrBackendContext) = context.configuration

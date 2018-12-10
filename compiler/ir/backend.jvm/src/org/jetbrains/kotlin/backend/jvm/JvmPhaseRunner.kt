@@ -10,9 +10,6 @@ import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.name
 
 object JvmPhaseRunner : DefaultIrPhaseRunner<JvmBackendContext, IrFile>() {
-    override val startPhaseMarker = IrFileStartPhase
-    override val endPhaseMarker = IrFileEndPhase
-
     override fun phases(context: JvmBackendContext) = context.phases
     override fun elementName(input: IrFile) = input.name
     override fun configuration(context: JvmBackendContext) = context.state.configuration

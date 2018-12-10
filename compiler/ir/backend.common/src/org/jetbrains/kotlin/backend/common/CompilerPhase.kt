@@ -9,45 +9,52 @@ import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.CompilerConfigurationKey
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.util.dump
 import kotlin.system.measureTimeMillis
 
-interface CompilerPhase<in Context : BackendContext, Data> {
+interface CompilerPhase<Context : BackendContext, Data> {
     val name: String
     val description: String
     val prerequisite: Set<CompilerPhase<*, *>>
         get() = emptySet()
 
-    fun invoke(context: Context, input: Data): Data
+    fun invoke(manager: CompilerPhaseManager<Context, Data>, input: Data): Data
 }
 
 private typealias AnyPhase = CompilerPhase<*, *>
 
-class CompilerPhases(private val phaseList: List<AnyPhase>, config: CompilerConfiguration) {
+class CompilerPhases(
+    val phaseList: List<AnyPhase>,
+    config: CompilerConfiguration,
+    val startPhaseMarker: AnyPhase? = null,
+    val endPhaseMarker: AnyPhase? = null
+) {
 
     val phases = phaseList.associate { it.name to it }
 
     val enabled = computeEnabled(config)
     val verbose = phaseSetFromConfiguration(config, CommonConfigurationKeys.VERBOSE_PHASES)
 
-    val toDumpStateBefore: Set<AnyPhase>
-    val toDumpStateAfter: Set<AnyPhase>
+    val toDumpStateBefore: MutableSet<AnyPhase>
+    val toDumpStateAfter: MutableSet<AnyPhase>
 
-    val toValidateStateBefore: Set<AnyPhase>
-    val toValidateStateAfter: Set<AnyPhase>
+    val toValidateStateBefore: MutableSet<AnyPhase>
+    val toValidateStateAfter: MutableSet<AnyPhase>
 
     init {
         with(CommonConfigurationKeys) {
             val beforeDumpSet = phaseSetFromConfiguration(config, PHASES_TO_DUMP_STATE_BEFORE)
             val afterDumpSet = phaseSetFromConfiguration(config, PHASES_TO_DUMP_STATE_AFTER)
             val bothDumpSet = phaseSetFromConfiguration(config, PHASES_TO_DUMP_STATE)
-            toDumpStateBefore = beforeDumpSet + bothDumpSet
-            toDumpStateAfter = afterDumpSet + bothDumpSet
+            toDumpStateBefore = (beforeDumpSet + bothDumpSet).toMutableSet()
+            toDumpStateAfter = (afterDumpSet + bothDumpSet).toMutableSet()
             val beforeValidateSet = phaseSetFromConfiguration(config, PHASES_TO_VALIDATE_BEFORE)
             val afterValidateSet = phaseSetFromConfiguration(config, PHASES_TO_VALIDATE_AFTER)
             val bothValidateSet = phaseSetFromConfiguration(config, PHASES_TO_VALIDATE)
-            toValidateStateBefore = beforeValidateSet + bothValidateSet
-            toValidateStateAfter = afterValidateSet + bothValidateSet
+            toValidateStateBefore = (beforeValidateSet + bothValidateSet).toMutableSet()
+            toValidateStateAfter = (afterValidateSet + bothValidateSet).toMutableSet()
         }
     }
 
@@ -70,61 +77,57 @@ class CompilerPhases(private val phaseList: List<AnyPhase>, config: CompilerConf
     private fun computeEnabled(config: CompilerConfiguration) =
         with(CommonConfigurationKeys) {
             val disabledPhases = phaseSetFromConfiguration(config, DISABLED_PHASES)
-            phases.values.toSet() - disabledPhases
+            (phases.values - disabledPhases).toMutableSet()
         }
 
     private fun phaseSetFromConfiguration(config: CompilerConfiguration, key: CompilerConfigurationKey<Set<String>>): Set<AnyPhase> {
         val phaseNames = config.get(key) ?: emptySet()
-        if ("ALL" in phaseNames) return phases.values.toSet()
-        return phaseNames.map { phases[it]!! }.toSet()
+        if ("ALL" in phaseNames) return phases.values.toMutableSet()
+        return phaseNames.map { phases[it]!! }.toMutableSet()
     }
 }
 
 
 interface PhaseRunner<Context : BackendContext, Data> {
-    fun runBefore(phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data)
-    fun runBody(phase: CompilerPhase<Context, Data>, context: Context, source: Data): Data
-    fun runAfter(phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data)
+    fun runBefore(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data)
+    fun runBody(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, context: Context, source: Data): Data
+    fun runAfter(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data)
 }
 
-abstract class DefaultIrPhaseRunner<Context : CommonBackendContext, Data : IrElement>(private val validator: (data: Data, context: Context) -> Unit = { _, _ -> }) :
+abstract class DefaultPhaseRunner<Context : CommonBackendContext, Data>(private val validator: (data: Data, context: Context) -> Unit = { _, _ -> }) :
     PhaseRunner<Context, Data> {
 
     enum class BeforeOrAfter { BEFORE, AFTER }
 
-    abstract val startPhaseMarker: CompilerPhase<Context, Data>
-    abstract val endPhaseMarker: CompilerPhase<Context, Data>
-
     private var inVerbosePhase = false
 
-    final override fun runBefore(phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data) {
+    final override fun runBefore(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data) {
         checkAndRun(phase, phases(context).toDumpStateBefore) { dumpElement(data, phase, context, BeforeOrAfter.BEFORE) }
         checkAndRun(phase, phases(context).toValidateStateBefore) { validator(data, context) }
     }
 
-    final override fun runBody(phase: CompilerPhase<Context, Data>, context: Context, source: Data): Data {
+    final override fun runBody(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, context: Context, source: Data): Data {
+        val phases = phases(context)
         val runner = when {
-            phase === startPhaseMarker -> ::justRun
-            phase === endPhaseMarker -> ::justRun
+            phase === phases.startPhaseMarker -> ::justRun
+            phase === phases.endPhaseMarker -> ::justRun
             needProfiling(context) -> ::runAndProfile
             else -> ::justRun
         }
 
         inVerbosePhase = phase in phases(context).verbose
 
-        val result = runner(phase, context, source)
+        val result = runner(manager, phase, source)
 
         inVerbosePhase = false
 
         return result
     }
 
-    final override fun runAfter(phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data) {
+    final override fun runAfter(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, depth: Int, context: Context, data: Data) {
         checkAndRun(phase, phases(context).toDumpStateAfter) { dumpElement(data, phase, context, BeforeOrAfter.AFTER) }
         checkAndRun(phase, phases(context).toValidateStateAfter) { validator(data, context) }
     }
-
-    open fun separator(title: String) = println("\n\n--- $title ----------------------\n")
 
     protected abstract fun phases(context: Context): CompilerPhases
     protected abstract fun elementName(input: Data): String
@@ -132,14 +135,36 @@ abstract class DefaultIrPhaseRunner<Context : CommonBackendContext, Data : IrEle
 
     private fun needProfiling(context: Context) = configuration(context).getBoolean(CommonConfigurationKeys.PROFILE_PHASES)
 
-    private fun shouldBeDumped(context: Context, input: Data) =
-        elementName(input) !in configuration(context).get(CommonConfigurationKeys.EXCLUDED_ELEMENTS_FROM_DUMPING, emptySet())
-
-    private fun checkAndRun(phase: CompilerPhase<Context, Data>, set: Set<AnyPhase>, block: () -> Unit) {
+    private fun checkAndRun(phase: CompilerPhase<*, Data>, set: Set<AnyPhase>, block: () -> Unit) {
         if (phase in set) block()
     }
 
-    private fun dumpElement(input: Data, phase: CompilerPhase<Context, Data>, context: Context, beforeOrAfter: BeforeOrAfter) {
+    protected abstract fun dumpElement(input: Data, phase: CompilerPhase<Context, Data>, context: Context, beforeOrAfter: BeforeOrAfter)
+
+    private fun runAndProfile(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, source: Data): Data {
+        var result: Data = source
+        val msec = measureTimeMillis { result = phase.invoke(manager, source) }
+        println("${phase.description}: $msec msec")
+        return result
+    }
+
+    private fun justRun(manager: CompilerPhaseManager<Context, Data>, phase: CompilerPhase<Context, Data>, source: Data) =
+        phase.invoke(manager, source)
+}
+
+abstract class DefaultIrPhaseRunner<Context : CommonBackendContext, Data : IrElement>(validator: (data: Data, context: Context) -> Unit = { _, _ -> }) :
+    DefaultPhaseRunner<Context, Data>(validator) {
+
+    open fun separator(title: String) = println("\n\n--- $title ----------------------\n")
+
+    private fun shouldBeDumped(context: Context, input: Data) =
+        elementName(input) !in configuration(context).get(CommonConfigurationKeys.EXCLUDED_ELEMENTS_FROM_DUMPING, emptySet())
+
+    override fun dumpElement(input: Data, phase: CompilerPhase<Context, Data>, context: Context, beforeOrAfter: BeforeOrAfter) {
+        val phases = phases(context)
+        val startPhaseMarker = phases.startPhaseMarker
+        val endPhaseMarker = phases.endPhaseMarker
+
         // Exclude nonsensical combinations
         if (phase === startPhaseMarker && beforeOrAfter == BeforeOrAfter.AFTER) return
         if (phase === endPhaseMarker && beforeOrAfter == BeforeOrAfter.BEFORE) return
@@ -157,16 +182,6 @@ abstract class DefaultIrPhaseRunner<Context : CommonBackendContext, Data : IrEle
         separator(title)
         println(input.dump())
     }
-
-    private fun runAndProfile(phase: CompilerPhase<Context, Data>, context: Context, source: Data): Data {
-        var result: Data = source
-        val msec = measureTimeMillis { result = phase.invoke(context, source) }
-        println("${phase.description}: $msec msec")
-        return result
-    }
-
-    private fun justRun(phase: CompilerPhase<Context, Data>, context: Context, source: Data) =
-        phase.invoke(context, source)
 }
 
 class CompilerPhaseManager<Context : BackendContext, Data>(
@@ -180,19 +195,19 @@ class CompilerPhaseManager<Context : BackendContext, Data>(
 
     private val previousPhases = mutableSetOf<CompilerPhase<Context, Data>>()
 
-    fun <NewData> createChild(
+    fun <NewData> createChildManager(
         newData: NewData,
         newPhaseRunner: PhaseRunner<Context, NewData>
     ) = CompilerPhaseManager(
         context, phases, newData, newPhaseRunner, parent = this
     )
 
-    fun createChild() = createChild(data, phaseRunner)
+    fun createChildManager() = createChildManager(data, phaseRunner)
 
     private fun checkPrerequisite(phase: CompilerPhase<*, *>): Boolean =
         previousPhases.contains(phase) || parent?.checkPrerequisite(phase) == true
 
-    fun phase(phase: CompilerPhase<Context, Data>, context: Context, source: Data): Data {
+    fun phase(phase: CompilerPhase<Context, Data>, source: Data): Data {
 
         if (phase !in phases.enabled) return source
 
@@ -203,27 +218,56 @@ class CompilerPhaseManager<Context : BackendContext, Data>(
 
         previousPhases.add(phase)
 
-        phaseRunner.runBefore(phase, depth, context, source)
-        val result = phaseRunner.runBody(phase, context, source)
-        phaseRunner.runAfter(phase, depth, context, result)
+        phaseRunner.runBefore(this, phase, depth, context, source)
+        val result = phaseRunner.runBody(this, phase, context, source)
+        phaseRunner.runAfter(this, phase, depth, context, result)
         return result
     }
 }
 
 fun <Context : BackendContext, Data> makePhase(
-    lowering: (Context, Data) -> Unit,
+    op: CompilerPhaseManager<Context, Data>.(Data) -> Unit,
     description: String,
     name: String,
-    prerequisite: Set<CompilerPhase<*, *>> = emptySet()
+    prerequisite: Set<AnyPhase> = emptySet()
 ) = object : CompilerPhase<Context, Data> {
     override val name = name
     override val description = description
     override val prerequisite = prerequisite
 
-    override fun invoke(context: Context, input: Data): Data {
-        lowering(context, input)
+    override fun invoke(manager: CompilerPhaseManager<Context, Data>, input: Data): Data {
+        manager.op(input)
         return input
     }
 
     override fun toString() = "Compiler Phase @$name"
 }
+
+fun <Context : BackendContext> makeFileLoweringPhase(
+    lowering: (Context) -> FileLoweringPass,
+    description: String,
+    name: String,
+    prerequisite: Set<AnyPhase> = emptySet()
+) = makePhase<Context, IrFile>(
+    op = { irFile -> lowering(context).lower(irFile) },
+    name = name,
+    description = description,
+    prerequisite = prerequisite
+)
+
+fun <Context : BackendContext> makeModuleLoweringPhase(
+    lowering: (Context) -> FileLoweringPass,
+    description: String,
+    name: String,
+    prerequisite: Set<AnyPhase> = emptySet()
+) = makePhase<Context, IrModuleFragment>(
+    op = { irModule -> lowering(context).lower(irModule) },
+    name = name,
+    description = description,
+    prerequisite = prerequisite
+)
+
+fun <Context : BackendContext, Data> CompilerPhaseManager<Context, Data>.runPhases(
+    phaseList: List<CompilerPhase<Context, Data>>
+): Data =
+        phaseList.fold(data) { m, p -> phase(p, m) }

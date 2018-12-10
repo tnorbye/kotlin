@@ -55,7 +55,7 @@ class JsIrBackendContext(
 
     override val builtIns = module.builtIns
 
-    val phases = CompilerPhases(jsPhases, configuration)
+    val phases = CompilerPhases(jsPhases, configuration, IrModuleStartPhase, IrModuleEndPhase)
 
     val internalPackageFragmentDescriptor = KnownPackageFragmentDescriptor(builtIns.builtInsModule, FqName("kotlin.js.internal"))
     val implicitDeclarationFile by lazy {

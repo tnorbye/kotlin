@@ -5,112 +5,109 @@
 
 package org.jetbrains.kotlin.backend.jvm
 
-import org.jetbrains.kotlin.backend.common.BackendContext
-import org.jetbrains.kotlin.backend.common.CompilerPhase
+import org.jetbrains.kotlin.backend.common.*
 import org.jetbrains.kotlin.backend.common.lower.*
-import org.jetbrains.kotlin.backend.common.makePhase
-import org.jetbrains.kotlin.backend.common.runOnFilePostfix
 import org.jetbrains.kotlin.backend.jvm.lower.*
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.name.NameUtils
 
-object IrFileStartPhase : CompilerPhase<BackendContext, IrFile> {
+object IrFileStartPhase : CompilerPhase<JvmBackendContext, IrFile> {
     override val name = "IrFileStart"
     override val description = "State at start of IrFile lowering"
     override val prerequisite = emptySet()
-    override fun invoke(context: BackendContext, input: IrFile) = input
+    override fun invoke(manager: CompilerPhaseManager<JvmBackendContext, IrFile>, input: IrFile) = input
 }
 
 private fun makeJvmPhase(
-    lowering: (JvmBackendContext, IrFile) -> Unit,
+    lowering: (JvmBackendContext) -> FileLoweringPass,
     description: String,
     name: String,
     prerequisite: Set<CompilerPhase<JvmBackendContext, IrFile>> = emptySet()
-) = makePhase(lowering, description, name, prerequisite)
+) = makeFileLoweringPhase(lowering, description, name, prerequisite)
 
 private val JvmCoercionToUnitPhase = makeJvmPhase(
-    { context, file -> JvmCoercionToUnitPatcher(context).lower(file) },
+    ::JvmCoercionToUnitPatcher,
     name = "JvmCoercionToUnit",
     description = "Insert conversions to unit after IrCalls where needed"
 )
 
 private val FileClassPhase = makeJvmPhase(
-    { context, file -> FileClassLowering(context).lower(file) },
+    ::FileClassLowering,
     name = "FileClass",
     description = "Put file level function and property declaration into a class"
 )
 
 private val KCallableNamePropertyPhase = makeJvmPhase(
-    { context, file -> KCallableNamePropertyLowering(context).lower(file) },
+    ::KCallableNamePropertyLowering,
     name = "KCallableNameProperty",
     description = "Replace name references for callables with constants"
 )
 
-private val LateinitPhase = makeJvmPhase(
-    { context, file -> LateinitLowering(context, true).lower(file) },
+private val LateinitPhase = makePhase<JvmBackendContext, IrFile>(
+    { irFile -> LateinitLowering(context, true).lower(irFile) },
     name = "Lateinit",
     description = "Insert checks for lateinit field references"
 )
 
 private val MoveCompanionObjectFieldsPhase = makeJvmPhase(
-    { context, file -> MoveCompanionObjectFieldsLowering(context).runOnFilePostfix(file) },
+    ::MoveCompanionObjectFieldsLowering,
     name = "MoveCompanionObjectFields",
     description = "Move companion object fields to static fields of companion's owner"
 )
 
 
 private val ConstAndJvmFieldPropertiesPhase = makeJvmPhase(
-    { context, file -> ConstAndJvmFieldPropertiesLowering(context).lower(file) },
+    ::ConstAndJvmFieldPropertiesLowering,
     name = "ConstAndJvmFieldProperties",
     description = "Substitute calls to const and Jvm>Field properties with const/field access"
 )
 
 
 private val PropertiesPhase = makeJvmPhase(
-    { context, file -> PropertiesLowering(context).lower(file) },
+    ::PropertiesLowering,
     name = "Properties",
     description = "move fields and accessors for properties to their classes"
 )
 
 
 private val AnnotationPhase = makeJvmPhase(
-    { _, file -> AnnotationLowering().lower(file) },
+    ::AnnotationLowering,
     name = "Annotation",
     description = "Remove constructors from annotation classes"
 )
 
-private val DefaultArgumentStubPhase = makeJvmPhase(
-    { context, file -> DefaultArgumentStubGenerator(context, false).lower(file) },
+private val DefaultArgumentStubPhase = makePhase<JvmBackendContext, IrFile>(
+    { irFile -> DefaultArgumentStubGenerator(context, false).lower(irFile) },
     name = "DefaultArgumentsStubGenerator",
     description = "Generate synthetic stubs for functions with default parameter values"
 )
 
 private val InterfacePhase = makeJvmPhase(
-    { context, file -> InterfaceLowering(context).lower(file) },
+    ::InterfaceLowering,
     name = "Interface",
     description = "Move default implementations of interface members to DefaultImpls class"
 )
 
 private val InterfaceDelegationPhase = makeJvmPhase(
-    { context, file -> InterfaceDelegationLowering(context).lower(file) },
+    ::InterfaceDelegationLowering,
     name = "InterfaceDelegation",
     description = "Delegate calls to interface members with default implementations to DefaultImpls"
 )
 
 private val SharedVariablesPhase = makeJvmPhase(
-    { context, file -> SharedVariablesLowering(context).lower(file) },
+    ::SharedVariablesLowering,
     name = "SharedVariables",
     description = "Transform shared variables"
 )
 
-private val LocalDeclarationsPhase = makeJvmPhase(
-    { context, data ->
+private val LocalDeclarationsPhase = makePhase<JvmBackendContext, IrFile>(
+    { irFile ->
         LocalDeclarationsLowering(context, object : LocalNameProvider {
             override fun localName(descriptor: DeclarationDescriptor): String =
                 NameUtils.sanitizeAsJavaIdentifier(super.localName(descriptor))
-        }, Visibilities.PUBLIC, true).lower(data)
+        }, Visibilities.PUBLIC, true).lower(irFile)
     },
     name = "JvmLocalDeclarations",
     description = "Move local declarations to classes",
@@ -118,114 +115,114 @@ private val LocalDeclarationsPhase = makeJvmPhase(
 )
 
 private val CallableReferencePhase = makeJvmPhase(
-    { context, file -> CallableReferenceLowering(context).lower(file) },
+    ::CallableReferenceLowering,
     name = "CallableReference",
     description = "Handle callable references"
 )
 
 private val FunctionNVarargInvokePhase = makeJvmPhase(
-    { context, file -> FunctionNVarargInvokeLowering(context).lower(file) },
+    ::FunctionNVarargInvokeLowering,
     name = "FunctionNVarargInvoke",
     description = "Handle invoke functions with large number of arguments"
 )
 
 
 private val InnerClassesPhase = makeJvmPhase(
-    { context, file -> InnerClassesLowering(context).lower(file) },
+    ::InnerClassesLowering,
     name = "InnerClasses",
     description = "Move inner classes to toplevel"
 )
 
 private val InnerClassConstructorCallsPhase = makeJvmPhase(
-    { context, file -> InnerClassConstructorCallsLowering(context).lower(file) },
+    ::InnerClassConstructorCallsLowering,
     name = "InnerClassConstructorCalls",
     description = "Handle constructor calls for inner classes"
 )
 
 
 private val EnumClassPhase = makeJvmPhase(
-    { context, file -> EnumClassLowering(context).lower(file) },
+    ::EnumClassLowering,
     name = "EnumClass",
     description = "Handle enum classes"
 )
 
 
 private val ObjectClassPhase = makeJvmPhase(
-    { context, file -> ObjectClassLowering(context).lower(file) },
+    ::ObjectClassLowering,
     name = "ObjectClass",
     description = "Handle object classes"
 )
 
-private val InitializersPhase = makeJvmPhase(
-    { context, file -> InitializersLowering(context, JvmLoweredDeclarationOrigin.CLASS_STATIC_INITIALIZER, true).lower(file) },
+private val InitializersPhase = makePhase<JvmBackendContext, IrFile>(
+    { file -> InitializersLowering(context, JvmLoweredDeclarationOrigin.CLASS_STATIC_INITIALIZER, true).lower(file) },
     name = "Initializers",
     description = "Handle initializer statements"
 )
 
 
 private val SingletonReferencesPhase = makeJvmPhase(
-    { context, file -> SingletonReferencesLowering(context).lower(file) },
+    ::SingletonReferencesLowering,
     name = "SingletonReferences",
     description = "Handle singleton references"
 )
 
 
 private val SyntheticAccessorPhase = makeJvmPhase(
-    { context, file -> SyntheticAccessorLowering(context).lower(file) },
+    ::SyntheticAccessorLowering,
     name = "SyntheticAccessor",
     description = "Introduce synthetic accessors",
     prerequisite = setOf(ObjectClassPhase)
 )
 
 private val BridgePhase = makeJvmPhase(
-    { context, file -> BridgeLowering(context).lower(file) },
+    ::BridgeLowering,
     name = "Bridge",
     description = "Generate bridges"
 )
 
 
 private val JvmOverloadsAnnotationPhase = makeJvmPhase(
-    { context, file -> JvmOverloadsAnnotationLowering(context).lower(file) },
+    ::JvmOverloadsAnnotationLowering,
     name = "JvmOverloadsAnnotation",
     description = "Handle JvmOverloads annotations"
 )
 
 
 private val JvmStaticAnnotationPhase = makeJvmPhase(
-    { context, file -> JvmStaticAnnotationLowering(context).lower(file) },
+    ::JvmStaticAnnotationLowering,
     name = "JvmStaticAnnotation",
     description = "Handle JvmStatic annotations"
 )
 
 
 private val StaticDefaultFunctionPhase = makeJvmPhase(
-    { _, file -> StaticDefaultFunctionLowering().lower(file) },
+    ::StaticDefaultFunctionLowering,
     name = "StaticDefaultFunction",
     description = "Generate static functions for default parameters"
 )
 
 
 private val TailrecPhase = makeJvmPhase(
-    { context, file -> TailrecLowering(context).lower(file) },
+    ::TailrecLowering,
     name = "Tailrec",
     description = "Handle tailrec calls"
 )
 
 
 private val ToArrayPhase = makeJvmPhase(
-    { context, file -> ToArrayLowering(context).lower(file) },
+    ::ToArrayLowering,
     name = "ToArray",
     description = "Handle toArray functions"
 )
 
-object IrFileEndPhase : CompilerPhase<BackendContext, IrFile> {
+object IrFileEndPhase : CompilerPhase<JvmBackendContext, IrFile> {
     override val name = "IrFileEnd"
     override val description = "State at end of IrFile lowering"
     override val prerequisite = emptySet()
-    override fun invoke(context: BackendContext, input: IrFile) = input
+    override fun invoke(manager: CompilerPhaseManager<JvmBackendContext, IrFile>, input: IrFile) = input
 }
 
-val jvmPhases = listOf(
+val jvmPhases: List<CompilerPhase<JvmBackendContext, IrFile>> = listOf(
     IrFileStartPhase,
 
     JvmCoercionToUnitPhase,

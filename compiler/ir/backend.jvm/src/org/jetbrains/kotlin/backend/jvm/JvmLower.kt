@@ -18,16 +18,18 @@ package org.jetbrains.kotlin.backend.jvm
 
 import org.jetbrains.kotlin.backend.common.BackendContext
 import org.jetbrains.kotlin.backend.common.CompilerPhase
+import org.jetbrains.kotlin.backend.common.CompilerPhaseManager
+import org.jetbrains.kotlin.backend.common.runPhases
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.util.PatchDeclarationParentsVisitor
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 
-fun makePatchParentsPhase(number: Int) = object : CompilerPhase<BackendContext, IrFile> {
+fun <Context : BackendContext> makePatchParentsPhase(number: Int) = object : CompilerPhase<Context, IrFile> {
     override val name: String = "PatchParents$number"
     override val description: String = "Patch parent references in IrFile, pass $number"
-    override val prerequisite: Set<CompilerPhase<BackendContext, *>> = emptySet()
+    override val prerequisite: Set<CompilerPhase<Context, *>> = emptySet()
 
-    override fun invoke(context: BackendContext, input: IrFile): IrFile {
+    override fun invoke(manager: CompilerPhaseManager<Context, IrFile>, input: IrFile): IrFile {
         input.acceptVoid(PatchDeclarationParentsVisitor())
         return input
     }
@@ -35,13 +37,7 @@ fun makePatchParentsPhase(number: Int) = object : CompilerPhase<BackendContext, 
 
 class JvmLower(val context: JvmBackendContext) {
     fun lower(irFile: IrFile) {
-        var state = irFile
         // TODO run lowering passes as callbacks in bottom-up visitor
-
-        context.rootPhaseManager(irFile).apply {
-            for (jvmPhase in jvmPhases) {
-                state = phase(jvmPhase, context, state)
-            }
-        }
+        context.rootPhaseManager(irFile).runPhases(jvmPhases)
     }
 }
