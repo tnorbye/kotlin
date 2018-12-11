@@ -133,8 +133,8 @@ fun IrClass.buildSimpleDelegatingConstructor(
         constructor.parent = this
         declarations += constructor
 
-        superConstructor.valueParameters.forEachIndexed { index, parameter ->
-            constructor.valueParameters += parameter.copy(startOffset, endOffset, index, origin ?: this.origin)
+        superConstructor.valueParameters.mapIndexedTo(constructor.valueParameters) { index, parameter ->
+            parameter.copy(startOffset, endOffset, index, origin ?: this.origin).also { it.parent = constructor }
         }
 
         constructor.body = IrBlockBodyImpl(
@@ -316,6 +316,11 @@ fun IrType.remapTypeParameters(source: IrTypeParametersContainer, target: IrType
 fun IrDeclarationContainer.addChild(declaration: IrDeclaration) {
     this.declarations += declaration
     declaration.accept(SetDeclarationsParentVisitor, this)
+}
+
+fun <T: IrElement> T.setDeclarationsParent(parent: IrDeclarationParent): T {
+    accept(SetDeclarationsParentVisitor, parent)
+    return this
 }
 
 object SetDeclarationsParentVisitor : IrElementVisitor<Unit, IrDeclarationParent> {
