@@ -36,7 +36,9 @@ abstract class ScratchExecutor(protected val file: ScratchFile) {
             handler.onFinish(file)
         }
 
-        LOG.error(e)
+        if (e != null) {
+            LOG.error(e)
+        }
     }
 
     protected class CompositeOutputHandler : ScratchOutputHandler {

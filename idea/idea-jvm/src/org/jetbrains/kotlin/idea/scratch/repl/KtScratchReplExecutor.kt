@@ -76,11 +76,6 @@ class KtScratchReplExecutor(file: ScratchFile) : ScratchExecutor(file) {
         processInputOS.flush()
     }
 
-    private fun error(file: ScratchFile, message: String) {
-        handler.error(file, message)
-        handler.onFinish(file)
-    }
-
     private class ReplHistory {
         private var entries = arrayListOf<ScratchExpression>()
         private var processedEntriesCount: Int = 0
