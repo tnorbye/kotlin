@@ -38,6 +38,7 @@ import org.jetbrains.kotlin.idea.scratch.ScratchFile
 import org.jetbrains.kotlin.idea.scratch.ScratchFileLanguageProvider
 import org.jetbrains.kotlin.idea.scratch.actions.ClearScratchAction
 import org.jetbrains.kotlin.idea.scratch.actions.RunScratchAction
+import org.jetbrains.kotlin.idea.scratch.actions.StopScratchAction
 import org.jetbrains.kotlin.idea.scratch.addScratchPanel
 import org.jetbrains.kotlin.idea.scratch.removeScratchPanel
 import javax.swing.*
@@ -126,6 +127,7 @@ class ScratchTopPanel private constructor(val scratchFile: ScratchFile) : JPanel
     private fun createActionsToolbar(): JComponent {
         val toolbarGroup = DefaultActionGroup().apply {
             add(RunScratchAction())
+            add(StopScratchAction())
             addSeparator()
             add(ClearScratchAction())
         }
