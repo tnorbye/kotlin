@@ -23,6 +23,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import org.jetbrains.kotlin.idea.scratch.ui.scratchFileOptions
 
 abstract class ScratchFile(val project: Project, val editor: TextEditor) {
     fun getExpressions(): List<ScratchExpression> = runReadAction {
@@ -37,7 +38,29 @@ abstract class ScratchFile(val project: Project, val editor: TextEditor) {
         return editor.getScratchPanel()?.getModule()
     }
 
+    val options: ScratchFileOptions
+        get() {
+            return getPsiFile()?.virtualFile?.scratchFileOptions ?: ScratchFileOptions()
+        }
+
+    fun updateOptions(update: ScratchFileOptions.() -> Unit) {
+        val virtualFile = getPsiFile()?.virtualFile ?: return
+        with(virtualFile) {
+            val configToUpdate = scratchFileOptions ?: ScratchFileOptions()
+            configToUpdate.update()
+
+            if (scratchFileOptions != configToUpdate) {
+                scratchFileOptions = configToUpdate
+            }
+        }
+    }
+
     abstract fun getExpressions(psiFile: PsiFile): List<ScratchExpression>
 }
 
 data class ScratchExpression(val element: PsiElement, val lineStart: Int, val lineEnd: Int = lineStart)
+
+data class ScratchFileOptions(
+    var isRepl: Boolean = false,
+    var isMakeBeforeRun: Boolean = false
+)
