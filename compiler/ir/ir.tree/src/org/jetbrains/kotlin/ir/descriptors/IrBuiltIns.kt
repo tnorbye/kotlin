@@ -19,7 +19,9 @@ import org.jetbrains.kotlin.ir.types.withHasQuestionMark
 import org.jetbrains.kotlin.ir.util.DeclarationStubGenerator
 import org.jetbrains.kotlin.ir.util.SymbolTable
 import org.jetbrains.kotlin.ir.util.TypeTranslator
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.FqNameUnsafe
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.KotlinTypeFactory
@@ -27,17 +29,21 @@ import org.jetbrains.kotlin.types.SimpleType
 import org.jetbrains.kotlin.types.Variance
 import org.jetbrains.kotlin.types.typeUtil.makeNullable
 
+@Suppress("DEPRECATION", "MemberVisibilityCanBePrivate", "unused")
 class IrBuiltIns(
-    val builtIns: KotlinBuiltIns,
+    private val moduleDescriptor: ModuleDescriptor,
     private val typeTranslator: TypeTranslator,
     outerSymbolTable: SymbolTable? = null
 ) {
     val languageVersionSettings = typeTranslator.languageVersionSettings
 
+    @Deprecated("Use 'findTopLevelBuiltInClass(FqName)'")
+    val builtIns: KotlinBuiltIns = moduleDescriptor.builtIns
+
     private val builtInsModule = builtIns.builtInsModule
 
     private val packageFragment = IrBuiltinsPackageFragmentDescriptorImpl(builtInsModule, KOTLIN_INTERNAL_IR_FQN)
-    val irBuiltInsExternalPackageFragment = IrExternalPackageFragmentImpl(IrExternalPackageFragmentSymbolImpl(packageFragment))
+    private val irBuiltInsExternalPackageFragment = IrExternalPackageFragmentImpl(IrExternalPackageFragmentSymbolImpl(packageFragment))
 
     private val symbolTable = outerSymbolTable ?: SymbolTable()
     private val stubBuilder =
@@ -56,6 +62,13 @@ class IrBuiltIns(
         return addStubToPackageFragment(operatorDescriptor)
     }
 
+    fun findTopLevelBuiltInClass(fqn: FqName) =
+        moduleDescriptor.findClassAcrossModuleDependencies(ClassId.topLevel(fqn))
+            ?: builtIns.getBuiltInClassByFqName(fqn)
+
+    fun findTopLevelBuiltInClass(fqn: FqNameUnsafe) =
+        findTopLevelBuiltInClass(fqn.toSafe())
+
     private fun addStubToPackageFragment(descriptor: SimpleFunctionDescriptor): IrSimpleFunction {
         val irSimpleFunction = stubBuilder.generateFunctionStub(descriptor)
         irBuiltInsExternalPackageFragment.declarations.add(irSimpleFunction)
@@ -72,73 +85,112 @@ class IrBuiltIns(
     private fun List<SimpleType>.defineComparisonOperatorForEachType(name: String) =
         associate { it to defineComparisonOperator(name, it) }
 
-    val any = builtIns.anyType
-    val anyN = builtIns.nullableAnyType
+    private val anyClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.any)
+    @Deprecated("Descriptor-based API")
+    val any = anyClassDescriptor.defaultType
+    @Deprecated("Descriptor-based API")
+    val anyN = any.makeNullableAsSpecified(true)
     val anyType = any.toIrType()
-    val anyClass = builtIns.any.toIrSymbol()
+    val anyClass = anyClassDescriptor.toIrSymbol()
     val anyNType = anyType.withHasQuestionMark(true)
 
-    val bool = builtIns.booleanType
+    private val booleanClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._boolean)
+    @Deprecated("Descriptor-based API")
+    val bool = booleanClassDescriptor.defaultType
     val booleanType = bool.toIrType()
-    val booleanClass = builtIns.boolean.toIrSymbol()
+    val booleanClass = booleanClassDescriptor.toIrSymbol()
 
-    val char = builtIns.charType
+    private val charClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._char)
+    @Deprecated("Descriptor-based API")
+    val char = charClassDescriptor.defaultType
     val charType = char.toIrType()
-    val charClass = builtIns.char.toIrSymbol()
+    val charClass = charClassDescriptor.toIrSymbol()
 
-    val number = builtIns.number.defaultType
+    private val numberClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.number)
+    @Deprecated("Descriptor-based API")
+    val number = numberClassDescriptor.defaultType
     val numberType = number.toIrType()
-    val numberClass = builtIns.number.toIrSymbol()
+    val numberClass = numberClassDescriptor.toIrSymbol()
 
-    val byte = builtIns.byteType
+    private val byteClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._byte)
+    @Deprecated("Descriptor-based API")
+    val byte = byteClassDescriptor.defaultType
     val byteType = byte.toIrType()
-    val byteClass = builtIns.byte.toIrSymbol()
+    val byteClass = byteClassDescriptor.toIrSymbol()
 
-    val short = builtIns.shortType
+    private val shortClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._short)
+    @Deprecated("Descriptor-based API")
+    val short = shortClassDescriptor.defaultType
     val shortType = short.toIrType()
-    val shortClass = builtIns.short.toIrSymbol()
+    val shortClass = shortClassDescriptor.toIrSymbol()
 
-    val int = builtIns.intType
+    private val intClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._int)
+    @Deprecated("Descriptor-based API")
+    val int = intClassDescriptor.defaultType
     val intType = int.toIrType()
-    val intClass = builtIns.int.toIrSymbol()
+    val intClass = intClassDescriptor.toIrSymbol()
 
-    val long = builtIns.longType
+    private val longClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._long)
+    @Deprecated("Descriptor-based API")
+    val long = longClassDescriptor.defaultType
     val longType = long.toIrType()
-    val longClass = builtIns.long.toIrSymbol()
+    val longClass = longClassDescriptor.toIrSymbol()
 
-    val float = builtIns.floatType
+    private val floatClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._float)
+    @Deprecated("Descriptor-based API")
+    val float = floatClassDescriptor.defaultType
     val floatType = float.toIrType()
-    val floatClass = builtIns.float.toIrSymbol()
+    val floatClass = floatClassDescriptor.toIrSymbol()
 
-    val double = builtIns.doubleType
+    private val doubleClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._double)
+    @Deprecated("Descriptor-based API")
+    val double = doubleClassDescriptor.defaultType
     val doubleType = double.toIrType()
-    val doubleClass = builtIns.double.toIrSymbol()
+    val doubleClass = doubleClassDescriptor.toIrSymbol()
 
-    val nothing = builtIns.nothingType
-    val nothingN = builtIns.nullableNothingType
+    private val nothingClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.nothing)
+    @Deprecated("Descriptor-based API")
+    val nothing = nothingClassDescriptor.defaultType
+    @Deprecated("Descriptor-based API")
+    val nothingN = nothing.makeNullableAsSpecified(true)
     val nothingType = nothing.toIrType()
-    val nothingClass = builtIns.nothing.toIrSymbol()
+    val nothingClass = nothingClassDescriptor.toIrSymbol()
     val nothingNType = nothingType.withHasQuestionMark(true)
 
-    val unit = builtIns.unitType
+    private val unitClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.unit)
+    @Deprecated("Descriptor-based API")
+    val unit = unitClassDescriptor.defaultType
     val unitType = unit.toIrType()
-    val unitClass = builtIns.unit.toIrSymbol()
+    val unitClass = unitClassDescriptor.toIrSymbol()
 
-    val string = builtIns.stringType
+    private val stringClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.string)
+    @Deprecated("Descriptor-based API")
+    val string = stringClassDescriptor.defaultType
     val stringType = string.toIrType()
-    val stringClass = builtIns.string.toIrSymbol()
+    val stringClass = stringClassDescriptor.toIrSymbol()
 
-    val arrayClass = builtIns.array.toIrSymbol()
+    private val charSequenceClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.charSequence)
+    val charSequenceClass = charSequenceClassDescriptor.toIrSymbol()
+    val charSequence = charSequenceClassDescriptor.defaultType.toIrType()
 
-    val throwableType = builtIns.throwable.defaultType.toIrType()
-    val throwableClass = builtIns.throwable.toIrSymbol()
+    private val arrayClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.array)
+    val arrayClass = arrayClassDescriptor.toIrSymbol()
 
-    val kCallableClass = builtIns.getBuiltInClassByFqName(KotlinBuiltIns.FQ_NAMES.kCallable.toSafe()).toIrSymbol()
-    val kPropertyClass = builtIns.getBuiltInClassByFqName(KotlinBuiltIns.FQ_NAMES.kPropertyFqName.toSafe()).toIrSymbol()
+    private val throwableClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.throwable)
+    val throwableType = throwableClassDescriptor.defaultType.toIrType()
+    val throwableClass = throwableClassDescriptor.toIrSymbol()
 
-    // TODO switch to IrType
+    private val kCallableClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.kCallable)
+    val kCallableClass = kCallableClassDescriptor.toIrSymbol()
+
+    private val kPropertyClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.kPropertyFqName)
+    val kPropertyClass = kPropertyClassDescriptor.toIrSymbol()
+
+    @Deprecated("Descriptor-based API")
     val primitiveTypes = listOf(bool, char, byte, short, int, long, float, double)
+    @Deprecated("Descriptor-based API")
     val primitiveTypesWithComparisons = listOf(int, long, float, double)
+    @Deprecated("Descriptor-based API")
     val primitiveFloatingPointTypes = listOf(float, double)
 
     val lessFunByOperandType = primitiveTypesWithComparisons.defineComparisonOperatorForEachType("less")
@@ -160,12 +212,19 @@ class IrBuiltIns(
     val noWhenBranchMatchedExceptionFun = defineOperator("noWhenBranchMatchedException", nothing, listOf())
     val illegalArgumentExceptionFun = defineOperator("illegalArgumentException", nothing, listOf(string))
 
+    @Deprecated("Descriptor-based API")
     val eqeqeq = eqeqeqFun.descriptor
+    @Deprecated("Descriptor-based API")
     val eqeq = eqeqFun.descriptor
+    @Deprecated("Descriptor-based API")
     val throwNpe = throwNpeFun.descriptor
+    @Deprecated("Descriptor-based API")
     val throwCce = throwCceFun.descriptor
+    @Deprecated("Descriptor-based API")
     val booleanNot = booleanNotFun.descriptor
+    @Deprecated("Descriptor-based API")
     val noWhenBranchMatchedException = noWhenBranchMatchedExceptionFun.descriptor
+    @Deprecated("Descriptor-based API")
     val illegalArgumentException = illegalArgumentExceptionFun.descriptor
 
     val eqeqeqSymbol = eqeqeqFun.symbol
@@ -178,6 +237,7 @@ class IrBuiltIns(
     val illegalArgumentExceptionSymbol = illegalArgumentExceptionFun.symbol
 
     val enumValueOfFun = createEnumValueOfFun()
+    @Deprecated("Descriptor-based API")
     val enumValueOf = enumValueOfFun.descriptor
     val enumValueOfSymbol = enumValueOfFun.symbol
 
@@ -204,10 +264,12 @@ class IrBuiltIns(
         }.addStub()
 
     val dataClassArrayMemberHashCodeFun = defineOperator("dataClassArrayMemberHashCode", int, listOf(any))
+    @Deprecated("Descriptor-based API")
     val dataClassArrayMemberHashCode = dataClassArrayMemberHashCodeFun.descriptor
     val dataClassArrayMemberHashCodeSymbol = dataClassArrayMemberHashCodeFun.symbol
 
     val dataClassArrayMemberToStringFun = defineOperator("dataClassArrayMemberToString", string, listOf(anyN))
+    @Deprecated("Descriptor-based API")
     val dataClassArrayMemberToString = dataClassArrayMemberToStringFun.descriptor
     val dataClassArrayMemberToStringSymbol = dataClassArrayMemberToStringFun.symbol
 
