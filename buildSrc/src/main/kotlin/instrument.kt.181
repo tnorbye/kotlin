@@ -23,7 +23,6 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.ConventionTask
 import org.gradle.api.plugins.ExtensionAware
-import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.kotlin.dsl.*
