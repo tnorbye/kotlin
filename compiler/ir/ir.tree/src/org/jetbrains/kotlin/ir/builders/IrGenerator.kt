@@ -30,6 +30,7 @@ interface IrGeneratorWithScope : IrGenerator {
 abstract class IrGeneratorContext {
     abstract val irBuiltIns: IrBuiltIns
 
+    @Deprecated("Use 'irBuiltInsfindTopLevelBuiltInClass(FqName)'")
     val builtIns: KotlinBuiltIns get() = irBuiltIns.builtIns
 }
 

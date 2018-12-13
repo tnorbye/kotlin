@@ -22,6 +22,8 @@ import org.jetbrains.kotlin.ir.builders.Scope
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
+import org.jetbrains.kotlin.ir.types.classOrFail
+import org.jetbrains.kotlin.ir.types.classifierOrFail
 import org.jetbrains.kotlin.ir.util.referenceFunction
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
@@ -98,7 +100,7 @@ class BodyGenerator(
                     ktBody.startOffsetSkippingComments, ktBody.endOffset,
                     IrGetObjectValueImpl(
                         ktBody.startOffsetSkippingComments, ktBody.endOffset, context.irBuiltIns.unitType,
-                        context.symbolTable.referenceClass(context.builtIns.unit)
+                        context.irBuiltIns.unitType.classOrFail
                     )
                 )
             )
@@ -260,13 +262,12 @@ class BodyGenerator(
     }
 
     private fun generateAnySuperConstructorCall(irBlockBody: IrBlockBodyImpl, ktElement: KtPureElement) {
-        val anyConstructor = context.builtIns.any.constructors.single()
         irBlockBody.statements.add(
             IrDelegatingConstructorCallImpl(
                 ktElement.pureStartOffset, ktElement.pureEndOffset,
                 context.irBuiltIns.unitType,
-                context.symbolTable.referenceConstructor(anyConstructor),
-                anyConstructor
+                context.irBuiltIns.anyConstructor,
+                context.irBuiltIns.anyConstructor.descriptor
             )
         )
     }
@@ -276,12 +277,11 @@ class BodyGenerator(
         ktElement: KtElement,
         classDescriptor: ClassDescriptor
     ) {
-        val enumConstructor = context.builtIns.enum.constructors.single()
         irBlockBody.statements.add(
             IrEnumConstructorCallImpl(
                 ktElement.startOffsetSkippingComments, ktElement.endOffset,
                 context.irBuiltIns.unitType,
-                context.symbolTable.referenceConstructor(enumConstructor),
+                context.irBuiltIns.enumConstructor,
                 1 // kotlin.Enum<T> has a single type parameter
             ).apply {
                 putTypeArgument(0, classDescriptor.defaultType.toIrType())

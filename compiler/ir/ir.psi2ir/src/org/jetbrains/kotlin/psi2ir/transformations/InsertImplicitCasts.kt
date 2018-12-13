@@ -42,11 +42,10 @@ import org.jetbrains.kotlin.types.typeUtil.makeNullable
 import org.jetbrains.kotlin.types.upperIfFlexible
 
 fun insertImplicitCasts(element: IrElement, context: GeneratorContext) {
-    element.transformChildren(InsertImplicitCasts(context.builtIns, context.irBuiltIns, context.typeTranslator), null)
+    element.transformChildren(InsertImplicitCasts(context.irBuiltIns, context.typeTranslator), null)
 }
 
 open class InsertImplicitCasts(
-    private val builtIns: KotlinBuiltIns,
     private val irBuiltIns: IrBuiltIns,
     private val typeTranslator: TypeTranslator
 ) : IrElementTransformerVoid() {
@@ -140,20 +139,20 @@ open class InsertImplicitCasts(
     override fun visitWhen(expression: IrWhen): IrExpression =
         expression.transformPostfix {
             for (irBranch in branches) {
-                irBranch.condition = irBranch.condition.cast(builtIns.booleanType)
+                irBranch.condition = irBranch.condition.cast(irBuiltIns.booleanType)
                 irBranch.result = irBranch.result.cast(type)
             }
         }
 
     override fun visitLoop(loop: IrLoop): IrExpression =
         loop.transformPostfix {
-            condition = condition.cast(builtIns.booleanType)
+            condition = condition.cast(irBuiltIns.booleanType)
             body = body?.coerceToUnit()
         }
 
     override fun visitThrow(expression: IrThrow): IrExpression =
         expression.transformPostfix {
-            value = value.cast(builtIns.throwable.defaultType)
+            value = value.cast(irBuiltIns.throwableType)
         }
 
     override fun visitTry(aTry: IrTry): IrExpression =
@@ -256,7 +255,7 @@ open class InsertImplicitCasts(
     }
 
     protected fun isUnitSubtype(valueType: KotlinType) =
-        KotlinTypeChecker.DEFAULT.isSubtypeOf(valueType, builtIns.unitType)
+        KotlinTypeChecker.DEFAULT.isSubtypeOf(valueType, irBuiltIns.unit)
 
     private fun KotlinType.isBuiltInIntegerType(): Boolean =
         KotlinBuiltIns.isByte(this) ||

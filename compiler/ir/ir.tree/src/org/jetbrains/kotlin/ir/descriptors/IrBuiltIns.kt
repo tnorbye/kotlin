@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.descriptors.annotations.Annotations
 import org.jetbrains.kotlin.descriptors.impl.SimpleFunctionDescriptorImpl
 import org.jetbrains.kotlin.descriptors.impl.TypeParameterDescriptorImpl
 import org.jetbrains.kotlin.descriptors.impl.ValueParameterDescriptorImpl
+import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.impl.IrExternalPackageFragmentImpl
@@ -27,6 +28,7 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.KotlinTypeFactory
 import org.jetbrains.kotlin.types.SimpleType
 import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.types.checker.KotlinTypeChecker
 import org.jetbrains.kotlin.types.typeUtil.makeNullable
 
 @Suppress("DEPRECATION", "MemberVisibilityCanBePrivate", "unused")
@@ -50,7 +52,13 @@ class IrBuiltIns(
         DeclarationStubGenerator(builtInsModule, symbolTable, IrDeclarationOrigin.IR_BUILTINS_STUB, languageVersionSettings)
 
     private fun ClassDescriptor.toIrSymbol() = symbolTable.referenceClass(this)
+    private fun ClassConstructorDescriptor.toIrSymbol() = symbolTable.referenceConstructor(this)
     private fun KotlinType.toIrType() = typeTranslator.translateType(this)
+
+    private inline fun ClassDescriptor.findFirstFunction(name: String, predicate: (CallableMemberDescriptor) -> Boolean) =
+        unsubstitutedMemberScope.getContributedFunctions(Name.identifier(name), NoLookupLocation.FROM_BACKEND)
+            .first(predicate)
+            .let { symbolTable.referenceSimpleFunction(it) }
 
     fun defineOperator(name: String, returnType: KotlinType, valueParameterTypes: List<KotlinType>): IrSimpleFunction {
         val operatorDescriptor = IrSimpleBuiltinOperatorDescriptorImpl(packageFragment, Name.identifier(name), returnType)
@@ -93,6 +101,7 @@ class IrBuiltIns(
     val anyType = any.toIrType()
     val anyClass = anyClassDescriptor.toIrSymbol()
     val anyNType = anyType.withHasQuestionMark(true)
+    val anyConstructor = anyClassDescriptor.constructors.single().toIrSymbol()
 
     private val booleanClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._boolean)
     @Deprecated("Descriptor-based API")
@@ -129,6 +138,8 @@ class IrBuiltIns(
     val int = intClassDescriptor.defaultType
     val intType = int.toIrType()
     val intClass = intClassDescriptor.toIrSymbol()
+    val intTimes = intClassDescriptor.findFirstFunction("times") { KotlinTypeChecker.DEFAULT.equalTypes(it.valueParameters[0].type, int) }
+    val intPlus = intClassDescriptor.findFirstFunction("plus") { KotlinTypeChecker.DEFAULT.equalTypes(it.valueParameters[0].type, int) }
 
     private val longClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._long)
     @Deprecated("Descriptor-based API")
@@ -185,6 +196,10 @@ class IrBuiltIns(
 
     private val kPropertyClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES.kPropertyFqName)
     val kPropertyClass = kPropertyClassDescriptor.toIrSymbol()
+
+    private val enumClassDescriptor = findTopLevelBuiltInClass(KotlinBuiltIns.FQ_NAMES._enum)
+    val enumClass = enumClassDescriptor.toIrSymbol()
+    val enumConstructor = enumClassDescriptor.constructors.single().toIrSymbol()
 
     @Deprecated("Descriptor-based API")
     val primitiveTypes = listOf(bool, char, byte, short, int, long, float, double)
@@ -254,7 +269,7 @@ class IrBuiltIns(
             )
 
             val valueParameterName = ValueParameterDescriptorImpl(
-                this, null, 0, Annotations.EMPTY, Name.identifier("name"), builtIns.stringType,
+                this, null, 0, Annotations.EMPTY, Name.identifier("name"), string,
                 false, false, false, null, SourceElement.NO_SOURCE
             )
 

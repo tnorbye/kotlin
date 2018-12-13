@@ -160,8 +160,8 @@ class StatementGenerator(
         val isBlockBody = expression.parent is KtDeclarationWithBody && expression.parent !is KtFunctionLiteral
         if (isBlockBody) throw AssertionError("Use IrBlockBody and corresponding body generator to generate blocks as function bodies")
 
-        val returnType = getInferredTypeWithImplicitCasts(expression) ?: context.builtIns.unitType
-        val irBlock = IrBlockImpl(expression.startOffsetSkippingComments, expression.endOffset, returnType.toIrType())
+        val returnType = getInferredTypeWithImplicitCasts(expression)?.toIrType() ?: context.irBuiltIns.unitType
+        val irBlock = IrBlockImpl(expression.startOffsetSkippingComments, expression.endOffset, returnType)
 
         expression.statements.forEach {
             irBlock.statements.add(it.genStmt())
@@ -174,7 +174,7 @@ class StatementGenerator(
         val returnTarget = getReturnExpressionTarget(expression)
         val irReturnedExpression = expression.returnedExpression?.genExpr() ?: IrGetObjectValueImpl(
             expression.startOffsetSkippingComments, expression.endOffset, context.irBuiltIns.unitType,
-            context.symbolTable.referenceClass(context.builtIns.unit)
+            context.irBuiltIns.unitClass
         )
         return IrReturnImpl(
             expression.startOffsetSkippingComments, expression.endOffset, context.irBuiltIns.nothingType,

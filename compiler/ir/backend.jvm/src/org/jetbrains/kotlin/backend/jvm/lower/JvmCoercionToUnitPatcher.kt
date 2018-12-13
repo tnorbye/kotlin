@@ -19,7 +19,7 @@ import org.jetbrains.kotlin.psi2ir.transformations.InsertImplicitCasts
 
 class JvmCoercionToUnitPatcher(val context: JvmBackendContext) :
     InsertImplicitCasts(
-        context.builtIns, context.irBuiltIns,
+        context.irBuiltIns,
         TypeTranslator(context.ir.symbols.externalSymbolTable, context.state.languageVersionSettings)
     ),
     FileLoweringPass {

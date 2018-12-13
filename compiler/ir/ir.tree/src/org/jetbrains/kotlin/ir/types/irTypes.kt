@@ -39,6 +39,9 @@ fun IrType.withHasQuestionMark(hasQuestionMark: Boolean): IrType =
 val IrType.classifierOrFail: IrClassifierSymbol
     get() = cast<IrSimpleType>().classifier
 
+val IrType.classOrFail: IrClassSymbol
+    get() = cast<IrSimpleType>().classifier as IrClassSymbol
+
 val IrType.classifierOrNull: IrClassifierSymbol?
     get() = safeAs<IrSimpleType>()?.classifier
 

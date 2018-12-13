@@ -42,7 +42,6 @@ import org.jetbrains.kotlin.psi2ir.startOffsetOrUndefined
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.DescriptorToSourceUtils
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.checker.KotlinTypeChecker
 
 class DataClassMembersGenerator(
     declarationGenerator: DeclarationGenerator
@@ -190,17 +189,8 @@ class DataClassMembersGenerator(
             }
         }
 
-        private val intClass = context.builtIns.int
-        private val intType = context.builtIns.intType
-
-        private val intTimes =
-            intClass.findFirstFunction("times") { KotlinTypeChecker.DEFAULT.equalTypes(it.valueParameters[0].type, intType) }
-                .let { context.symbolTable.referenceFunction(it) }
-
-        private val intPlus =
-            intClass.findFirstFunction("plus") { KotlinTypeChecker.DEFAULT.equalTypes(it.valueParameters[0].type, intType) }
-                .let { context.symbolTable.referenceFunction(it) }
-
+        private val intTimes = context.irBuiltIns.intTimes
+        private val intPlus = context.irBuiltIns.intPlus
 
         private fun getHashCodeFunction(type: KotlinType): FunctionDescriptor {
             val typeConstructorDescriptor = type.constructor.declarationDescriptor
@@ -212,7 +202,7 @@ class DataClassMembersGenerator(
                         type.memberScope.findFirstFunction("hashCode") { it.valueParameters.isEmpty() }
 
                 is TypeParameterDescriptor ->
-                    getHashCodeFunction(context.builtIns.anyType) // TODO
+                    getHashCodeFunction(context.irBuiltIns.any) // TODO
 
                 else ->
                     throw AssertionError("Unexpected type: $type")
