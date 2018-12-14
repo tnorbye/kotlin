@@ -623,6 +623,13 @@ open class KotlinNativeTargetConfigurator(
             }
         }
 
+        // Create an aggregate link task for each compilation.
+        project.whenEvaluated {
+            target.binaries.forEach {
+                project.tasks.maybeCreate(it.compilation.binariesTaskName).dependsOn(it.linkTaskName)
+            }
+        }
+
         // Create binaries for output kinds declared using the old DSL.
         project.whenEvaluated {
             target.compilations.all { compilation ->
