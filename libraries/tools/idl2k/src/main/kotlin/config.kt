@@ -94,88 +94,82 @@ val kotlinBuiltinInterfaces = mapOf(
                 )
 )
 
-sealed class EventMapKey
-data class SimpleEventMapKey(val name: String) : EventMapKey()
-data class ContextAwareEventMapKey(val name: String, val context: String) : EventMapKey()
-
-private fun String.toSimpleEventMapKey() = SimpleEventMapKey(this)
-private fun String.toContextAwareEventMapKey(context: String) = ContextAwareEventMapKey(this, context)
+data class EventMapKey(val name: String, val context: String? = null)
+private fun String.asEventMapKey(context: String? = null) = EventMapKey(this, context)
 
 val specifyEventMapper = mapOf<EventMapKey, String>(
-    "onbeforeunload".toSimpleEventMapKey() to "BeforeUnloadEvent",
+    "onbeforeunload".asEventMapKey() to "BeforeUnloadEvent",
 
-    "ondrag".toSimpleEventMapKey() to "DragEvent",
-    "ondragend".toSimpleEventMapKey() to "DragEvent",
-    "ondragenter".toSimpleEventMapKey() to "DragEvent",
-    "ondragexit".toSimpleEventMapKey() to "DragEvent",
-    "ondragleave".toSimpleEventMapKey() to "DragEvent",
-    "ondragover".toSimpleEventMapKey() to "DragEvent",
-    "ondragstart".toSimpleEventMapKey() to "DragEvent",
-    "ondrop".toSimpleEventMapKey() to "DragEvent",
+    "ondrag".asEventMapKey() to "DragEvent",
+    "ondragend".asEventMapKey() to "DragEvent",
+    "ondragenter".asEventMapKey() to "DragEvent",
+    "ondragexit".asEventMapKey() to "DragEvent",
+    "ondragleave".asEventMapKey() to "DragEvent",
+    "ondragover".asEventMapKey() to "DragEvent",
+    "ondragstart".asEventMapKey() to "DragEvent",
+    "ondrop".asEventMapKey() to "DragEvent",
 
-    "onfetch".toSimpleEventMapKey() to "FetchEvent",
+    "onfetch".asEventMapKey() to "FetchEvent",
 
-    "onblur".toSimpleEventMapKey() to "FocusEvent",
-    "onfocus".toSimpleEventMapKey() to "FocusEvent",
+    "onblur".asEventMapKey() to "FocusEvent",
+    "onfocus".asEventMapKey() to "FocusEvent",
 
-    "onhashchange".toSimpleEventMapKey() to "HashChangeEvent",
+    "onhashchange".asEventMapKey() to "HashChangeEvent",
 
-    "oninput".toSimpleEventMapKey() to "InputEvent",
+    "oninput".asEventMapKey() to "InputEvent",
 
-    "onkeydown".toSimpleEventMapKey() to "KeyboardEvent",
-    "onkeypress".toSimpleEventMapKey() to "KeyboardEvent",
-    "onkeyup".toSimpleEventMapKey() to "KeyboardEvent",
+    "onkeydown".asEventMapKey() to "KeyboardEvent",
+    "onkeypress".asEventMapKey() to "KeyboardEvent",
+    "onkeyup".asEventMapKey() to "KeyboardEvent",
 
-    "onaddtrack".toContextAwareEventMapKey("MediaStream") to "MediaStreamTrackEvent",
-    "onremovetrack".toContextAwareEventMapKey("MediaStream") to "MediaStreamTrackEvent",
+    "onaddtrack".asEventMapKey("MediaStream") to "MediaStreamTrackEvent",
+    "onremovetrack".asEventMapKey("MediaStream") to "MediaStreamTrackEvent",
 
-    "onmessage".toSimpleEventMapKey() to "MessageEvent",
+    "onmessage".asEventMapKey() to "MessageEvent",
 
-    "onclick".toSimpleEventMapKey() to "MouseEvent",
-    "oncontextmenu".toSimpleEventMapKey() to "MouseEvent",
-    "ondblclick".toSimpleEventMapKey() to "MouseEvent",
-    "onmousedown".toSimpleEventMapKey() to "MouseEvent",
-    "onmouseenter".toSimpleEventMapKey() to "MouseEvent",
-    "onmouseleave".toSimpleEventMapKey() to "MouseEvent",
-    "onmousemove".toSimpleEventMapKey() to "MouseEvent",
-    "onmouseout".toSimpleEventMapKey() to "MouseEvent",
-    "onmouseover".toSimpleEventMapKey() to "MouseEvent",
-    "onmouseup".toSimpleEventMapKey() to "MouseEvent",
+    "onclick".asEventMapKey() to "MouseEvent",
+    "oncontextmenu".asEventMapKey() to "MouseEvent",
+    "ondblclick".asEventMapKey() to "MouseEvent",
+    "onmousedown".asEventMapKey() to "MouseEvent",
+    "onmouseenter".asEventMapKey() to "MouseEvent",
+    "onmouseleave".asEventMapKey() to "MouseEvent",
+    "onmousemove".asEventMapKey() to "MouseEvent",
+    "onmouseout".asEventMapKey() to "MouseEvent",
+    "onmouseover".asEventMapKey() to "MouseEvent",
+    "onmouseup".asEventMapKey() to "MouseEvent",
 
-    "onnotificationclick".toSimpleEventMapKey() to "NotificationEvent",
-    "onnotificationclose".toSimpleEventMapKey() to "NotificationEvent",
+    "onnotificationclick".asEventMapKey() to "NotificationEvent",
+    "onnotificationclose".asEventMapKey() to "NotificationEvent",
 
-    "onpagehide".toSimpleEventMapKey() to "PageTransitionEvent",
-    "onpageshow".toSimpleEventMapKey() to "PageTransitionEvent",
+    "onpagehide".asEventMapKey() to "PageTransitionEvent",
+    "onpageshow".asEventMapKey() to "PageTransitionEvent",
 
-    "ongotpointercapture".toSimpleEventMapKey() to "PointerEvent",
-    "onlostpointercapture".toSimpleEventMapKey() to "PointerEvent",
-    "onpointercancel".toSimpleEventMapKey() to "PointerEvent",
-    "onpointerdown".toSimpleEventMapKey() to "PointerEvent",
-    "onpointerenter".toSimpleEventMapKey() to "PointerEvent",
-    "onpointerleave".toSimpleEventMapKey() to "PointerEvent",
-    "onpointermove".toSimpleEventMapKey() to "PointerEvent",
-    "onpointerout".toSimpleEventMapKey() to "PointerEvent",
-    "onpointerover".toSimpleEventMapKey() to "PointerEvent",
-    "onpointerup".toSimpleEventMapKey() to "PointerEvent",
+    "ongotpointercapture".asEventMapKey() to "PointerEvent",
+    "onlostpointercapture".asEventMapKey() to "PointerEvent",
+    "onpointercancel".asEventMapKey() to "PointerEvent",
+    "onpointerdown".asEventMapKey() to "PointerEvent",
+    "onpointerenter".asEventMapKey() to "PointerEvent",
+    "onpointerleave".asEventMapKey() to "PointerEvent",
+    "onpointermove".asEventMapKey() to "PointerEvent",
+    "onpointerout".asEventMapKey() to "PointerEvent",
+    "onpointerover".asEventMapKey() to "PointerEvent",
+    "onpointerup".asEventMapKey() to "PointerEvent",
 
-    "onpopstate".toSimpleEventMapKey() to "PopStateEvent",
+    "onpopstate".asEventMapKey() to "PopStateEvent",
 
-    "onloadstart".toSimpleEventMapKey() to "ProgressEvent",
-    "onprogress".toSimpleEventMapKey() to "ProgressEvent",
+    "onloadstart".asEventMapKey() to "ProgressEvent",
+    "onprogress".asEventMapKey() to "ProgressEvent",
 
-    "onunhandledrejection".toSimpleEventMapKey() to "PromiseRejectionEvent",
+    "onunhandledrejection".asEventMapKey() to "PromiseRejectionEvent",
 
-    "ontrack".toContextAwareEventMapKey("RTCPeerConnection") to "RTCTrackEvent",
+    "onstorage".asEventMapKey() to "StorageEvent",
 
-    "onstorage".toSimpleEventMapKey() to "StorageEvent",
+    "onaddtrack".asEventMapKey("AudioTrackList") to "TrackEvent",
+    "onaddtrack".asEventMapKey("TextTrackList") to "TrackEvent",
+    "onaddtrack".asEventMapKey("VideoTrackList") to "TrackEvent",
+    "onremovetrack".asEventMapKey("AudioTrackList") to "TrackEvent",
+    "onremovetrack".asEventMapKey("TextTrackList") to "TrackEvent",
+    "onremovetrack".asEventMapKey("VideoTrackList") to "TrackEvent",
 
-    "onaddtrack".toContextAwareEventMapKey("AudioTrackList") to "TrackEvent",
-    "onaddtrack".toContextAwareEventMapKey("TextTrackList") to "TrackEvent",
-    "onaddtrack".toContextAwareEventMapKey("VideoTrackList") to "TrackEvent",
-    "onremovetrack".toContextAwareEventMapKey("AudioTrackList") to "TrackEvent",
-    "onremovetrack".toContextAwareEventMapKey("TextTrackList") to "TrackEvent",
-    "onremovetrack".toContextAwareEventMapKey("VideoTrackList") to "TrackEvent",
-
-    "onwheel".toSimpleEventMapKey() to "WheelEvent"
+    "onwheel".asEventMapKey() to "WheelEvent"
 )
