@@ -89,7 +89,7 @@ fun generateFunctions(repository: Repository, function: Operation): List<Generat
 fun generateAttribute(putNoImpl: Boolean, repository: Repository, attribute: Attribute, nullableAttributes: Boolean): GenerateAttribute {
     val mappedType = mapType(repository, attribute.type).let { if (nullableAttributes) it.toNullable() else it }
     return GenerateAttribute(attribute.name,
-                             type = generalizeType(attribute.name, mappedType),
+                             type = mappedType,
                              initializer =
                              if (putNoImpl && !attribute.static) {
                                  mapLiteral(attribute.defaultValue, mapType(repository, attribute.type), repository.enums)
@@ -278,18 +278,25 @@ private fun generalizeType(name: String, type: Type): Type {
     return type
 }
 
-fun implementInterfaces(declarations: List<GenerateTraitOrClass>) {
+fun implementInterfaces(declarations: List<GenerateTraitOrClass>) : List<GenerateTraitOrClass> {
     val unimplementedMemberMap = getUnimplementedMembers(declarations)
     val nonAbstractDeclarations = declarations.filter { it.kind == GenerateDefinitionKind.CLASS }
     for (declaration in nonAbstractDeclarations) {
         val unimplementedMembers = unimplementedMemberMap[declaration.name] ?: continue
 
         for (attribute in unimplementedMembers.attributes) {
-            declaration.memberAttributes += attribute.copy(override = true, type = generalizeType(attribute.name, attribute.type))
+            declaration.memberAttributes += attribute.copy(override = true)
         }
         for (function in unimplementedMembers.functions) {
             declaration.memberFunctions += function.copy(override = true)
         }
+    }
+
+    return declarations.map { declaration ->
+        declaration.copy(
+            memberAttributes = declaration
+                .memberAttributes.map { attribute -> attribute.copy(type = generalizeType(attribute.name, attribute.type)) }.toMutableList()
+        )
     }
 }
 
