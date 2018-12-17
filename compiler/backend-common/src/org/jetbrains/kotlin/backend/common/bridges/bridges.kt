@@ -54,7 +54,7 @@ fun <Function : FunctionHandle, Signature> generateBridges(
     // into some of the super-classes and will be inherited in this class
     if (fake && function.getOverridden().none { it.isAbstract }) return setOf()
 
-    val implementation = findConcreteSuperDeclaration(function)
+    val implementation = findConcreteSuperDeclaration(function) ?: return setOf()
 
     val bridgesToGenerate = findAllReachableDeclarations(function).mapTo(LinkedHashSet<Signature>(), signature)
 
@@ -92,7 +92,7 @@ fun <Function : FunctionHandle> findAllReachableDeclarations(function: Function)
  * Given a concrete function, finds an implementation (a concrete declaration) of this function in the supertypes.
  * The implementation is guaranteed to exist because if it wouldn't, the given function would've been abstract
  */
-fun <Function : FunctionHandle> findConcreteSuperDeclaration(function: Function): Function {
+fun <Function : FunctionHandle> findConcreteSuperDeclaration(function: Function): Function? {
     require(!function.isAbstract, { "Only concrete functions have implementations: $function" })
 
     if (function.isDeclaration) return function
@@ -115,9 +115,5 @@ fun <Function : FunctionHandle> findConcreteSuperDeclaration(function: Function)
     result.removeAll(toRemove)
 
     val concreteRelevantDeclarations = result.filter { !it.isAbstract && it.mayBeUsedAsSuperImplementation }
-    if (concreteRelevantDeclarations.size != 1) {
-        error("Concrete fake override $function should have exactly one concrete super-declaration: $concreteRelevantDeclarations")
-    }
-
-    return concreteRelevantDeclarations[0]
+    return concreteRelevantDeclarations.singleOrNull()
 }
