@@ -14,9 +14,11 @@ import org.khronos.webgl.*
 import org.w3c.dom.*
 import org.w3c.dom.css.*
 import org.w3c.dom.events.*
+import org.w3c.dom.mediacapture.*
 import org.w3c.dom.parsing.*
 import org.w3c.dom.pointerevents.*
 import org.w3c.dom.svg.*
+import org.w3c.dom.webrtc.*
 import org.w3c.fetch.*
 import org.w3c.files.*
 import org.w3c.notifications.*
