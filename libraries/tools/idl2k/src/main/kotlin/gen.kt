@@ -260,9 +260,15 @@ private fun mapLiteral(literal: String?, expectedType: Type = DynamicType, enums
     }
 
 
-private fun specifyType(name: String, type: Type): Type {
+private fun specifyType(name: String, type: Type, context: String): Type {
+    //println("SPECIFY TYPE ${name} ${context} ${specifyEventMapper[ContextAwareEventMapKey(name, context)]}")
+
     if ((type is SimpleType) && (type.type == "Event")) {
-        specifyEventMapper[name]?.let {
+        specifyEventMapper[SimpleEventMapKey(name)]?.let {
+            return type.copy(type = it)
+        }
+
+        specifyEventMapper[ContextAwareEventMapKey(name, context)]?.let {
             return type.copy(type = it)
         }
     }
@@ -270,10 +276,10 @@ private fun specifyType(name: String, type: Type): Type {
     return type
 }
 
-private fun generalizeType(name: String, type: Type): Type {
+private fun generalizeType(name: String, type: Type, context: String): Type {
     if ((type is FunctionType) && (type.parameterTypes.size == 1)) {
         val paramAttribute = type.parameterTypes[0]
-        return type.copy(parameterTypes = listOf(paramAttribute.copy(type = specifyType(name, paramAttribute.type))))
+        return type.copy(parameterTypes = listOf(paramAttribute.copy(type = specifyType(name, paramAttribute.type, context))))
     }
     return type
 }
@@ -295,7 +301,7 @@ fun implementInterfaces(declarations: List<GenerateTraitOrClass>) : List<Generat
     return declarations.map { declaration ->
         declaration.copy(
             memberAttributes = declaration
-                .memberAttributes.map { attribute -> attribute.copy(type = generalizeType(attribute.name, attribute.type)) }.toMutableList()
+                .memberAttributes.map { attribute -> attribute.copy(type = generalizeType(attribute.name, attribute.type, declaration.name)) }.toMutableList()
         )
     }
 }
