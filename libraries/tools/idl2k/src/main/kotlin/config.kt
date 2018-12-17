@@ -28,7 +28,7 @@ val urls = listOf(
 
         "https://drafts.csswg.org/cssom/" to "org.w3c.dom.css",
         "http://www.w3.org/TR/DOM-Parsing/" to "org.w3c.dom.parsing",
-            "https://w3c.github.io/clipboard-apis" to "org.w3c.dom.clipboard",
+        "https://w3c.github.io/clipboard-apis" to "org.w3c.dom.clipboard",
         "https://raw.githubusercontent.com/whatwg/url/master/url.html" to "org.w3c.dom.url",
 
         "https://www.w3.org/TR/SVG2/single-page.html" to "org.w3c.dom.svg",
