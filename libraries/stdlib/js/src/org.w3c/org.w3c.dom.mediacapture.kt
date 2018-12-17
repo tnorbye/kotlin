@@ -18,7 +18,6 @@ import org.w3c.dom.parsing.*
 import org.w3c.dom.pointerevents.*
 import org.w3c.dom.svg.*
 import org.w3c.dom.url.*
-import org.w3c.dom.webrtc.*
 import org.w3c.fetch.*
 import org.w3c.files.*
 import org.w3c.notifications.*
@@ -34,8 +33,8 @@ public external open class MediaStream() : EventTarget {
     constructor(tracks: Array<MediaStreamTrack>)
     open val id: String
     open val active: Boolean
-    var onaddtrack: ((Event) -> dynamic)?
-    var onremovetrack: ((Event) -> dynamic)?
+    var onaddtrack: ((MediaStreamTrackEvent) -> dynamic)?
+    var onremovetrack: ((MediaStreamTrackEvent) -> dynamic)?
     fun getAudioTracks(): Array<MediaStreamTrack>
     fun getVideoTracks(): Array<MediaStreamTrack>
     fun getTracks(): Array<MediaStreamTrack>

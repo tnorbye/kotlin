@@ -18,7 +18,6 @@ import org.w3c.dom.mediacapture.*
 import org.w3c.dom.pointerevents.*
 import org.w3c.dom.svg.*
 import org.w3c.dom.url.*
-import org.w3c.dom.webrtc.*
 import org.w3c.fetch.*
 import org.w3c.files.*
 import org.w3c.notifications.*

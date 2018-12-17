@@ -25,7 +25,6 @@ val urls = listOf(
         "http://www.w3.org/TR/cssom-view/" to "org.w3c.dom",
         "http://www.w3.org/TR/uievents/" to "org.w3c.dom.events",
         "http://www.w3.org/TR/pointerevents/" to "org.w3c.dom.pointerevents",
-        "https://w3c.github.io/webrtc-pc/" to "org.w3c.dom.webrtc",
 
         "https://drafts.csswg.org/cssom/" to "org.w3c.dom.css",
         "https://w3c.github.io/mediacapture-main/" to "org.w3c.dom.mediacapture",

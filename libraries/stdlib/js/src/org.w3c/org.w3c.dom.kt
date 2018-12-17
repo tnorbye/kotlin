@@ -18,7 +18,6 @@ import org.w3c.dom.parsing.*
 import org.w3c.dom.pointerevents.*
 import org.w3c.dom.svg.*
 import org.w3c.dom.url.*
-import org.w3c.dom.webrtc.*
 import org.w3c.fetch.*
 import org.w3c.files.*
 import org.w3c.notifications.*
@@ -824,8 +823,8 @@ public external abstract class MediaError {
 public external abstract class AudioTrackList : EventTarget {
     open val length: Int
     open var onchange: ((Event) -> dynamic)?
-    open var onaddtrack: ((Event) -> dynamic)?
-    open var onremovetrack: ((Event) -> dynamic)?
+    open var onaddtrack: ((TrackEvent) -> dynamic)?
+    open var onremovetrack: ((TrackEvent) -> dynamic)?
     fun getTrackById(id: String): AudioTrack?
 }
 @kotlin.internal.InlineOnly inline operator fun AudioTrackList.get(index: Int): AudioTrack? = asDynamic()[index]
@@ -848,8 +847,8 @@ public external abstract class VideoTrackList : EventTarget {
     open val length: Int
     open val selectedIndex: Int
     open var onchange: ((Event) -> dynamic)?
-    open var onaddtrack: ((Event) -> dynamic)?
-    open var onremovetrack: ((Event) -> dynamic)?
+    open var onaddtrack: ((TrackEvent) -> dynamic)?
+    open var onremovetrack: ((TrackEvent) -> dynamic)?
     fun getTrackById(id: String): VideoTrack?
 }
 @kotlin.internal.InlineOnly inline operator fun VideoTrackList.get(index: Int): VideoTrack? = asDynamic()[index]
@@ -868,8 +867,8 @@ public external abstract class VideoTrack : UnionAudioTrackOrTextTrackOrVideoTra
 public external abstract class TextTrackList : EventTarget {
     open val length: Int
     open var onchange: ((Event) -> dynamic)?
-    open var onaddtrack: ((Event) -> dynamic)?
-    open var onremovetrack: ((Event) -> dynamic)?
+    open var onaddtrack: ((TrackEvent) -> dynamic)?
+    open var onremovetrack: ((TrackEvent) -> dynamic)?
     fun getTrackById(id: String): TextTrack?
 }
 @kotlin.internal.InlineOnly inline operator fun TextTrackList.get(index: Int): TextTrack? = asDynamic()[index]
